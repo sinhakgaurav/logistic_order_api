@@ -1,6 +1,6 @@
 <?php
 
-namespace App/Repository;
+namespace App\Repository;
 
 use Illuminate\Support\Facades\DB;
 
@@ -10,8 +10,13 @@ use Illuminate\Support\Facades\DB;
 class OrderRepository implements RepositoryContract
 {
 	
-	function __construct(argument)
-	{
-		# code...
+	public function paginate($limit, $start, $conditions) {
+		return DB::table('orders')
+                    ->join('distance', 'orders.distance_id', '=', 'distance.distance_id')
+                    ->select('orders.id', 'distance.distance', 'orders.status')
+                    ->orderBy('orders.id', 'asc')
+                    ->skip($start)
+                    ->take($limit)
+                    ->get();
 	}
 }

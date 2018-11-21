@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\ResponseFactory;
 use Illuminate\Support\Facades\DB;
+use App\Repository\OrderRepository;
+use App\Repository\DistanceRepository;
+
 
 class OrderController extends Controller
 {
@@ -48,14 +51,8 @@ class OrderController extends Controller
         if(isset($request->page))
             $offset = ($request->page - 1) * $limit;
 
-
-        $orders = DB::table('orders')
-                    ->join('distance', 'orders.distance_id', '=', 'distance.distance_id')
-                    ->select('orders.id', 'distance.distance', 'orders.status')
-                    ->orderBy('orders.id', 'asc')
-                    ->skip($offset)
-                    ->take($limit)
-                    ->get();
+        $orderRepository = new OrderRepository;
+        $orders = $orderRepository->paginate($limit, $offset);
 
         if (count($orders) == 0) {
             return response()->json(['error' => $this->common->getMessages('NO_DATA_FOUND')],
