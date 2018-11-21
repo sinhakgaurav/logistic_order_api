@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Common\Common;
-use App\Common\DistanceCalculator;
+use App\Common\Distance;
 use App\Common\Validator;
 use App\Distance;
 use App\Orders;
@@ -87,7 +87,8 @@ class OrderController extends Controller
             ], 406);
         }
 
-        $distanceResult = $this->calculateDistance($startLatitude, $startLongitude, $endLatitude, $endLongitude);
+        $distanceObj = new Distance;
+        $distanceResult = $distanceObj->calculateDistance($startLatitude, $startLongitude, $endLatitude, $endLongitude);
 
         if( !is_int($distanceResult['total_distance'])) {
             return response()->json(['error' => $this->common->getMessages($distanceResult['total_distance'])],
@@ -154,30 +155,6 @@ class OrderController extends Controller
         }
 
         return response()->json(['error' => $this->common->getMessages('order_taken')], 409);
-    }
-
-    public function calculateDistance($startLatitude, $startLongitude, $endLatitude, $endLongitude)
-    {
-        $distanceData = DB::table('distance')->where([
-                    ['start_latitude', '=', $startLatitude],
-                    ['start_longitude', '=', $startLongitude],
-                    ['end_latitude', '=', $endLatitude],
-                    ['end_longitude', '=', $endLongitude],
-                ])->get();
-
-        //validating to get data from google api with existing records
-        $distance_id = 0;
-        if(count($distanceData) > 0) {
-            $totalDis = $distanceData[0]->distance;
-            $distance_id = $distanceData[0]->distance_id;
-        } else {
-            $origin = $startLatitude .",". $startLongitude;
-            $destination = $endLatitude .",". $endLongitude;
-            $distanceObj = new DistanceCalculator;
-            $totalDis = $distanceObj->getDistanceMatrix($origin, $destination);
-        }
-
-        return ['distance_id'=>$distance_id, 'total_distance' => $totalDis];
     }
 
 }
