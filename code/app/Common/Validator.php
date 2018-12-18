@@ -7,24 +7,24 @@ class Validator {
     /**
      * Validate Input Parameters.
      *
-     * @params float $startLatitude
-     * @params float $startLongitude
-     * @params float $endLatitude
-     * @params float $endLongitude
+     * @params float $distanceParamArray['startLatitude']
+     * @params float $distanceParamArray['startLongitude']
+     * @params float $distanceParamArray['endLatitude']
+     * @params float $distanceParamArray['endLongitude']
      *
      * @return array
      */
-    public function validateInputParameters($startLatitude, $startLongitude, $endLatitude, $endLongitude)
+    public function validateInputParameters($distanceParamArray = [])
     {
         $response = ['status' => 'success'];
 
-        if ($startLatitude == $endLatitude && $startLongitude == $endLongitude) {
+        if ($distanceParamArray['startLatitude'] == $distanceParamArray['endLatitude'] && $distanceParamArray['startLongitude'] == $distanceParamArray['endLongitude']) {
             return $response = ['status' => 'failed' , 'error'=> 'REQUESTED_ORIGIN_DESTINATION_SAME'];
-        } elseif (!$startLatitude || !$startLongitude || !$endLatitude || !$endLongitude) {
+        } elseif (!$distanceParamArray['startLatitude'] || !$distanceParamArray['startLongitude'] || !$distanceParamArray['endLatitude'] || !$distanceParamArray['endLongitude']) {
             return $response = ['status' => 'failed' , 'error'=> 'REQUEST_PARAMETER_MISSING'];
-        } elseif ($startLatitude < -90 || $startLatitude > 90 || $endLatitude < -90 || $endLatitude > 90) {
+        } elseif ($$distanceParamArray['startLatitude'] < -90 || $$distanceParamArray['startLatitude'] > 90 || $distanceParamArray['endLatitude'] < -90 || $distanceParamArray['endLatitude'] > 90) {
             return $response = ['status' => 'failed' , 'error'=> 'LATITUDE_OUT_OF_RANGE'];
-        } elseif ($startLongitude< -180 || $startLongitude> 180 || $endLongitude< -180 || $endLongitude> 180) {
+        } elseif ($distanceParamArray['startLongitude']< -180 || $distanceParamArray['startLongitude']> 180 || $distanceParamArray['endLongitude']< -180 || $distanceParamArray['endLongitude']> 180) {
             return $response = ['status' => 'failed' , 'error'=> 'LONGITUDE_OUT_OF_RANGE'];
         }
 

@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Common\Common;
 use App\Common\Distance;
 use App\Common\Validator;
-use App\Distance;
-use App\Orders;
+use App\Orders;#needs to be replaced
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\ResponseFactory;
@@ -57,8 +56,7 @@ class OrderController extends Controller
         if(isset($request->page))
             $offset = ($request->page - 1) * $limit;
 
-        $orderRepository = new OrderRepository;
-        $orders = $orderRepository->paginate($limit, $offset);
+        $orders = $this->orderRepository->paginate($limit, $offset);
 
         if (count($orders) == 0) {
             return response()->json(['error' => $this->common->getMessages('NO_DATA_FOUND')],
@@ -76,14 +74,16 @@ class OrderController extends Controller
             ], 406);
         }
 
-        $startLatitude = $request->origin[0];
-        $startLongitude = $request->origin[1];
-        $endLatitude = $request->destination[0];
-        $endLongitude = $request->destination[1];
+        $distanceParamArray = [];
+        $distanceParamArray['startLatitude'] = $request->origin[0];
+        $distanceParamArray['startLongitude'] = $request->origin[1];
+        $distanceParamArray['endLatitude'] = $request->destination[0];
+        $distanceParamArray['endLongitude'] = $request->destination[1];
 
         //validating input parameters
         $validatorObj = new Validator;
-        $validate = $validatorObj->validateInputParameters($startLatitude, $startLongitude, $endLatitude, $endLongitude);
+        $validate = $validatorObj->validateInputParameters($distanceParamArray);
+
         if('failed' === $validate['status']) {
             return response()->json([
                 'error' => $this->common->getMessages($validate['error']),
@@ -91,7 +91,7 @@ class OrderController extends Controller
         }
 
         $distanceObj = new Distance;
-        $distanceResult = $distanceObj->calculateDistance($startLatitude, $startLongitude, $endLatitude, $endLongitude);
+        $distanceResult = $distanceObj->calculateDistance($distanceParamArray);
 
         if( !is_int($distanceResult['total_distance'])) {
             return response()->json(['error' => $this->common->getMessages($distanceResult['total_distance'])],
@@ -101,6 +101,7 @@ class OrderController extends Controller
         //inserting data in distance table
         $distanceID = $distanceResult['distance_id'];
         if ($distanceID === 0) {
+            $this->
             $distance = new Distance;
             $distance->start_latitude = $startLatitude;
             $distance->start_longitude = $startLongitude;

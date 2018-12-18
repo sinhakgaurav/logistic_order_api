@@ -2,7 +2,14 @@
 
 namespace App\Common;
 
+use App\Repository\DistanceRepository;
+
 class Distance {
+    protected $distanceRepository;
+
+    function __construct(DistanceRepository $distanceRepository) {
+        $this->distanceRepository = $distanceRepository;
+    }
 
     /**
      * Gets the distance from google api.
@@ -35,14 +42,14 @@ class Distance {
         return $distanceValue;
     }
 
-    public function calculateDistance($startLatitude, $startLongitude, $endLatitude, $endLongitude)
+    public function calculateDistance($distanceParamArray = [])
     {
-        $distanceData = DB::table('distance')->where([
-                    ['start_latitude', '=', $startLatitude],
-                    ['start_longitude', '=', $startLongitude],
-                    ['end_latitude', '=', $endLatitude],
-                    ['end_longitude', '=', $endLongitude],
-                ])->get();
+        $distanceData = $this->distanceRepository->find([
+                    ['start_latitude', '=', $distanceParamArray['startLatitude']],
+                    ['start_longitude', '=', $distanceParamArray['startLongitude']],
+                    ['end_latitude', '=', $distanceParamArray['endLatitude']],
+                    ['end_longitude', '=', $distanceParamArray['endLongitude']],
+                ]);
 
         //validating to get data from google api with existing records
         $distance_id = 0;
@@ -50,8 +57,8 @@ class Distance {
             $totalDis = $distanceData[0]->distance;
             $distance_id = $distanceData[0]->distance_id;
         } else {
-            $origin = $startLatitude .",". $startLongitude;
-            $destination = $endLatitude .",". $endLongitude;
+            $origin = $distanceParamArray['startLatitude'] .",". $distanceParamArray['startLongitude'];
+            $destination = $distanceParamArray['endLatitude'] .",". $distanceParamArray['endLongitude'];
             $totalDis = $this->getDistance($origin, $destination);
         }
 
