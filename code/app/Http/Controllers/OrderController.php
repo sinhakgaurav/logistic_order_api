@@ -10,7 +10,6 @@ use App\Orders;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\ResponseFactory;
-use Illuminate\Support\Facades\DB;
 use App\Repository\OrderRepository;
 use App\Repository\DistanceRepository;
 
@@ -18,10 +17,17 @@ use App\Repository\DistanceRepository;
 class OrderController extends Controller
 {
     protected $common;
+    protected $orderRepository;
+    protected $distanceRepository;
 
-    public function __construct(Common $common)
-    {
+    public function __construct(
+        Common $common,
+        OrderRepository $orderRepository,
+        DistanceRepository $distanceRepository
+    ) {
         $this->common = $common;
+        $this->orderRepository = $orderRepository;
+        $this->distanceRepository = $distanceRepository;
     }
 
     public function orders(Request $request)

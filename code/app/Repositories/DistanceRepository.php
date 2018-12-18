@@ -9,9 +9,19 @@ use Illuminate\Support\Facades\DB;
  */
 class DistanceRepository implements RepositoryContract
 {
-	
-	function __construct(argument)
-	{
-		# code...
-	}
+    public function paginate() {
+        #no body required for now
+    }
+
+    public function find($conditions=[]){
+        
+    }
+
+    public function update($data=[], $conditions=[]){
+        
+    }
+
+    public function create($data=[]){
+        
+    }
 }
