@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Common;
+namespace App\Http\Reponse;
 
-class Common {
+class Status {
 
     /**
      * All error messages.

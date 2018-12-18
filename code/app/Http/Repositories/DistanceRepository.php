@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repository;
+namespace App\Http\Repository;
 
 use Illuminate\Support\Facades\DB;
-use App\Distance;
+use App\Http\Model\Distance;
 
 /**
  * Repository for the Database interaction for the distance module related operations

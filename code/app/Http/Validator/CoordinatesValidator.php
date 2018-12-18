@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Common;
+namespace App\Http\Validator;
 
-class Validator {
+class CoordinatesValidator {
 
     /**
      * Validate Input Parameters.

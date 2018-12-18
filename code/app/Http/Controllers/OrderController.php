@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Common\Common;
-use App\Common\Distance;
-use App\Common\Validator;
-use App\Orders;#needs to be replaced
+use App\Http\Common\Distance;
+use App\Http\Response\Status;
+use App\Http\Validator\CoordinatesValidator;
+use App\Http\Model\Orders;#needs to be replaced
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\ResponseFactory;
-use App\Repository\OrderRepository;
-use App\Repository\DistanceRepository;
+use App\Http\Repository\OrderRepository;
+use App\Http\Repository\DistanceRepository;
 
 
 class OrderController extends Controller
