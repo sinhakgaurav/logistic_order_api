@@ -12,19 +12,21 @@ class DistanceSeeder extends Seeder
     public function run()
     {
         $locations = [
-            ["start_latitude" => "28.704060", "start_longitude" => "77.102493", "end_latitude" => "28.535517", "end_longitude" => "77.391029", "distance" => 46732
+            ["initial_latitude" => "28.704060", "initial_longitude" => "77.102493", "final_latitude" => "28.535517", "final_longitude" => "77.391029", "distance" => 46732
             ],
-            ["start_latitude" => "28.704060", "start_longitude" => "77.102493", "end_latitude" => "28.535517", "end_longitude" => "77.391044", "distance" => 912242
+            ["initial_latitude" => "28.704060", "initial_longitude" => "77.102493", "final_latitude" => "28.535517", "final_longitude" => "77.391044", "distance" => 912242
             ],
-            ["start_latitude" => "28.704060", "start_longitude" => "77.102493", "end_latitude" => "28.535517", "end_longitude" => "77.391028", "distance" => 46731
+            ["initial_latitude" => "28.704060", "initial_longitude" => "77.102493", "final_latitude" => "28.535517", "final_longitude" => "77.391028", "distance" => 46731
             ]
         ];
         foreach ($locations as $disData) {
-            App\Distance::create([
-                'start_latitude' => $disData['start_latitude'],
-                'start_longitude' => $disData['start_longitude'],
-                'end_latitude' => $disData['end_latitude'],
-                'end_longitude' => $disData['end_longitude'],
+            DB::table('distance')->insert([
+                'initial_latitude' => $disData['initial_latitude'],
+                'initial_longitude' => $disData['initial_longitude'],
+                'final_latitude' => $disData['final_latitude'],
+                'final_longitude' => $disData['final_longitude'],
+                'created_at' => date("Y-m-d H:i:s"),
+                'updated_at' => date("Y-m-d H:i:s"),
                 'distance' => $disData['distance']
             ]);
         }
@@ -37,27 +39,33 @@ class DistanceSeeder extends Seeder
             $lon2 = $faker->longitude();
             $distance = $this->distance($lat1, $lon1, $lat2, $lon2);
 
-            App\Distance::create([
-                'start_latitude' => $lat1,
-                'start_longitude' => $lon1,
-                'end_latitude' => $lat2,
-                'end_longitude' => $lon2,
+            DB::table('distance')->insert([
+                'initial_latitude' => $lat1,
+                'initial_longitude' => $lon1,
+                'final_latitude' => $lat2,
+                'final_longitude' => $lon2,
+                'created_at' => date("Y-m-d H:i:s"),
+                'updated_at' => date("Y-m-d H:i:s"),
                 'distance' => $distance
             ]);
         }
 
-        $distances = DB::table('distance')->pluck('distance', 'distance_id');
-	
-	App\Orders::create([
+        $distances = DB::table('distance')->pluck('distance', 'id');
+
+        DB::table('orders')->insert([
             'distance_id' => 1,
             'status' => 'TAKEN',
+            'created_at' => date("Y-m-d H:i:s"),
+            'updated_at' => date("Y-m-d H:i:s"),
         ]);
 
         foreach ($distances as $disID => $distanceValue) {
             for ($i=0; $i < 5 ; $i++) {
-                App\Orders::create([
+                DB::table('orders')->insert([
                     'distance_id' => $disID,
                     'status' => 'UNASSIGN',
+                    'created_at' => date("Y-m-d H:i:s"),
+                    'updated_at' => date("Y-m-d H:i:s"),
                 ]);
             }
         }
@@ -73,5 +81,4 @@ class DistanceSeeder extends Seeder
 
         return $distanceInMetre;
     }
-
 }

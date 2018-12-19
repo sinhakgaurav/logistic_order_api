@@ -3,7 +3,7 @@ version: "2.1"
 services:
     nginx:
         build: ./nginx/
-        container_name: delivery_nginx
+        container_name: order_app_nginx
         dns_search: nginx
         ports:
             - 8080:80
@@ -16,7 +16,7 @@ services:
             - composer
     php:
         build: ./php/
-        container_name: delivery_php
+        container_name: order_app_php
         expose:
             - 9000
         volumes:
@@ -27,18 +27,18 @@ services:
             - mysql
     mysql:
         build: ./mysql/
-        container_name: delivery_mysql
+        container_name: order_app_mysql
         ports:
             - 3306:3306
         dns_search: mysql
         environment:
             MYSQL_ROOT_PASSWORD: "password"
-            MYSQL_DATABASE: "deliveryorder"
+            MYSQL_DATABASE: "order_app"
         restart: always
 
 
     composer:
-        container_name: delivery_composer
+        container_name: order_app_composer
         restart: 'no'
         image: koutsoumpos89/composer-php7.1
         command: install --ignore-platform-reqs

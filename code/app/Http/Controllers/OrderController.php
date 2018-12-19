@@ -2,156 +2,124 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Common\Distance;
-use App\Http\Response\Status;
-use App\Http\Validator\CoordinatesValidator;
-use App\Http\Model\Orders;#needs to be replaced
+use App\Http\Models\Order;
+use App\Http\Requests\OrderListRequest;
+use App\Http\Requests\OrderUpdateRequest;
+use App\Http\Requests\OrderStoreRequest;
+use App\Http\Response\Response;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Routing\ResponseFactory;
-use App\Http\Repository\OrderRepository;
-use App\Http\Repository\DistanceRepository;
-
+use Mockery\Exception;
+use Validator;
 
 class OrderController extends Controller
 {
-    protected $response;
+    /**
+     * @var \App\Http\Repository\Order
+     */
     protected $orderRepository;
-    protected $distanceRepository;
-    protected $coordinatesValidator;
-    protected $distance;
 
+    /**
+     * @var Response
+     */
+    protected $response;
+
+    /**
+     * @param \App\Http\Repository\Order $orderRepository
+     * @param Response                 $response
+     */
     public function __construct(
-        Response $response,
-        OrderRepository $orderRepository,
-        DistanceRepository $distanceRepository,
-        Validator $coordinatesValidator,
-        Common $distance
+        \App\Http\Repository\Order $orderRepository,
+        Response $response
     ) {
-        $this->response = $response;
         $this->orderRepository = $orderRepository;
-        $this->distanceRepository = $distanceRepository;
-        $this->coordinatesValidator = $coordinatesValidator;
-        $this->distance = $distance;
+        $this->response = $response;
     }
 
-    public function orders(Request $request)
+    /**
+     * Places a new order
+     *
+     * @param Request $request
+     *
+     * @return JsonResponse
+     */
+    public function create(OrderStoreRequest $request)
     {
-        if (!isset($request->limit) || !isset($request->page)) {
-            return response()->json([
-                'error' => $this->response->getMessages('REQUEST_PARAMETER_MISSING'),
-            ], 406);
+        try {
+            if ($model = $this->orderRepository->createOrder($request)) {
+                $formattedResponse = $this->response->formatOrderAsResponse($model);
+
+                return $this->response->setSuccessResponse($formattedResponse);
+            } else {
+                $messages = $this->orderRepository->error;
+                $errorCode = $this->orderRepository->errorCode;
+
+                return $this->response->setError($messages, $errorCode);
+            }
+
+        } catch (Exception $e) {
+            return $this->response->sendError($e->getMessage(), JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        if (!is_numeric($request->input('limit')) || !is_numeric($request->input('page'))) {
-            return response()->json([
-                'error' => $this->response->getMessages('INVALID_PARAMETER_TYPE'),
-            ], 406);
-        }
-
-        if ($request->limit < 1 || $request->page < 1) {
-            return response()->json([
-                'error' => $this->response->getMessages('INVALID_PARAMETERS'),
-            ], 406);
-        }
-
-        if(isset($request->limit))
-            $limit = $request->limit;
-
-        $offset = 0;
-        if(isset($request->page))
-            $offset = ($request->page - 1) * $limit;
-
-        $orders = $this->orderRepository->paginate($limit, $offset);
-
-        if (count($orders) == 0) {
-            return response()->json(['error' => $this->response->getMessages('NO_DATA_FOUND')],
-             204);
-        }
-
-        return response()->json($orders, 200);
     }
 
-    public function store(Request $request)
+    /**
+     * Updates an order
+     *
+     * @param OrderUpdateRequest $request
+     * @param int                $id
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(OrderUpdateRequest $request, $id)
     {
-        if(!isset($request->origin) || !isset($request->destination) || empty($request->origin) || empty($request->destination) || count($request->origin) <> 2 || count($request->destination) <> 2) {
-            return response()->json([
-                'error' => $this->response->getMessages('INVALID_PARAMETERS'),
-            ], 406);
+        try {
+            if(!is_numeric($id)) {
+                return $this->response->setError('Invalid Order Id', JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $order = Order::findOrFail($id);
+
+            if ($order->status !== Order::UNASSIGNED_ORDER_STATUS) {
+                return $this->response->setError('Order already Taken', JsonResponse::HTTP_CONFLICT);
+            }
+
+            $order->exists = true;
+            $order->id = $id;
+            $order->status = Order::ASSIGNED_ORDER_STATUS;
+            $order->save();
+
+            return $this->response->setSuccess('SUCCESS', JsonResponse::HTTP_OK);
+        } catch (\Exception $e) {
+            return $this->response->setError('Invalid Order Id', JsonResponse::HTTP_EXPECTATION_FAILED);
         }
-
-        $distanceParamArray = [];
-        $distanceParamArray['startLatitude'] = $request->origin[0];
-        $distanceParamArray['startLongitude'] = $request->origin[1];
-        $distanceParamArray['endLatitude'] = $request->destination[0];
-        $distanceParamArray['endLongitude'] = $request->destination[1];
-
-        //validating input parameters
-        $validate = $this->coordinatesValidator->validateInputParameters($distanceParamArray);
-
-        if('failed' === $validate['status']) {
-            return response()->json([
-                'error' => $this->response->getMessages($validate['error']),
-            ], 406);
-        }
-
-        $distanceResult = $this->distance->calculateDistance($distanceParamArray);
-
-        if( !is_int($distanceResult['total_distance'])) {
-            return response()->json(['error' => $this->response->getMessages($distanceResult['total_distance'])],
-             400);
-        }
-
-        //inserting data in distance table
-        $distanceID = $this->distanceRepository->processCreate($distanceParamArray, $distanceResult);
-
-        $orderData = [];
-        $orderData['distanceId'] = $distanceID;
-        $orderData['status'] = 'UNASSIGN';
-        $orderId = $this->orderRepository->processCreate($orderData);
-
-        if ($orderId) {
-            return response()->json([
-                'id' => $orderId,
-                'distance' => $distanceResult['total_distance'],
-                'status' => $this->response->getMessages('unassign')
-            ], 200);
-        }
-
-        return response()->json(['error' => $this->response->getMessages('invalid_data')], 406);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * @param \Illuminate\Http\Request $request
+     *
+     * @return JsonResponse
+     */
+    public function list(OrderListRequest $request)
     {
-        if (!isset($request->status) || 'TAKEN' !== $request->status) {
-            return response()->json(['error' => $this->response->getMessages('status_is_invalid')],
-             406);
+        try {
+            $page = (int) $request->get('page', 1);
+            $limit = (int) $request->get('limit', 1);
+
+            $records = $this->orderRepository->getList($page, $limit);
+
+            if (!empty($records)) {
+                $orders = [];
+
+                foreach ($records as $record) {
+                    $orders[] = $this->response->formatOrderAsResponse($record);
+                }
+
+                return $this->response->setSuccessResponse($orders);
+            } else {
+                return $this->response->setError('No Content Found', JsonResponse::HTTP_NO_CONTENT);
+            }
+        } catch (Exception $exception) {
+            return $this->response->setError($exception->getMessage(), JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        $order = DB::table('orders')->where([
-                    ['id', '=', $id],
-                ])->get();
-
-        if(0 == count($order)) {
-            return response()->json(['error' => $this->response->getMessages('invalid_id')], 406);
-        }
-
-        if ('TAKEN' === $order[0]->status) {
-           return response()->json(['error' => $this->response->getMessages('order_taken')], 409);
-        }
-
-        $affected = DB::table('orders')
-        ->where([
-            ["orders.id", '=', $id],
-            ['status', '=', 'UNASSIGN'],
-        ])
-        ->update(['orders.status' => 'TAKEN']);
-
-        if($affected) {
-            return response()->json(['status' => $this->response->getMessages('success')], 200);
-        }
-
-        return response()->json(['error' => $this->response->getMessages('order_taken')], 409);
     }
-
 }

@@ -13,11 +13,10 @@ use Illuminate\Http\Request;
 |
 */
 
-
-$router->group([], function () use ($router) {
-  $router->get('/orders', ['uses' => 'OrderController@orders']);
-
-  $router->post('/orders', ['uses' => 'OrderController@store']);
-
-  $router->patch('/orders/{id}', ['uses' => 'OrderController@update']);
+Route::middleware('auth:api')->get('/user', function (Request $request) {
+    return $request->user();
 });
+
+Route::post('orders', 'OrderController@create');
+Route::patch('orders/{id}', 'OrderController@update');
+Route::get('orders', 'OrderController@list');
