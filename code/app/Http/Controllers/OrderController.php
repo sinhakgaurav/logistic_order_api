@@ -103,27 +103,16 @@ class OrderController extends Controller
         }
 
         //inserting data in distance table
-        $distanceID = $distanceResult['distance_id'];
-        if ($distanceID === 0) {
-            $this->
-            $distance = new Distance;
-            $distance->start_latitude = $startLatitude;
-            $distance->start_longitude = $startLongitude;
-            $distance->end_latitude = $endLatitude;
-            $distance->end_longitude = $endLongitude;
-            $distance->distance = $distanceResult['total_distance'];
-            $distance->save();
-            $distanceID = (int) DB::getPdo()->lastInsertId();
-        }
+        $distanceID = $this->distanceRepository->processCreate($distanceParamArray, $distanceResult);
 
-        //inserting data in orders table
-        $order = new Orders;
-        $order->distance_id = $distanceID;
-        $order->status = 'UNASSIGN';
+        $orderData = [];
+        $orderData['distanceId'] = $distanceID;
+        $orderData['status'] = 'UNASSIGN';
+        $orderId = $this->orderRepository->processCreate($orderData);
 
-        if ($order->save()) {
+        if ($orderId) {
             return response()->json([
-                'id' => $order->id,
+                'id' => $orderId,
                 'distance' => $distanceResult['total_distance'],
                 'status' => $this->response->getMessages('unassign')
             ], 200);
