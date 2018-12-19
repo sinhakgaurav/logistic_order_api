@@ -15,37 +15,43 @@ use App\Http\Repository\DistanceRepository;
 
 class OrderController extends Controller
 {
-    protected $common;
+    protected $response;
     protected $orderRepository;
     protected $distanceRepository;
+    protected $coordinatesValidator;
+    protected $distance;
 
     public function __construct(
-        Common $common,
+        Response $response,
         OrderRepository $orderRepository,
-        DistanceRepository $distanceRepository
+        DistanceRepository $distanceRepository,
+        Validator $coordinatesValidator,
+        Common $distance
     ) {
-        $this->common = $common;
+        $this->response = $response;
         $this->orderRepository = $orderRepository;
         $this->distanceRepository = $distanceRepository;
+        $this->coordinatesValidator = $coordinatesValidator;
+        $this->distance = $distance;
     }
 
     public function orders(Request $request)
     {
         if (!isset($request->limit) || !isset($request->page)) {
             return response()->json([
-                'error' => $this->common->getMessages('REQUEST_PARAMETER_MISSING'),
+                'error' => $this->response->getMessages('REQUEST_PARAMETER_MISSING'),
             ], 406);
         }
 
         if (!is_numeric($request->input('limit')) || !is_numeric($request->input('page'))) {
             return response()->json([
-                'error' => $this->common->getMessages('INVALID_PARAMETER_TYPE'),
+                'error' => $this->response->getMessages('INVALID_PARAMETER_TYPE'),
             ], 406);
         }
 
         if ($request->limit < 1 || $request->page < 1) {
             return response()->json([
-                'error' => $this->common->getMessages('INVALID_PARAMETERS'),
+                'error' => $this->response->getMessages('INVALID_PARAMETERS'),
             ], 406);
         }
 
@@ -59,7 +65,7 @@ class OrderController extends Controller
         $orders = $this->orderRepository->paginate($limit, $offset);
 
         if (count($orders) == 0) {
-            return response()->json(['error' => $this->common->getMessages('NO_DATA_FOUND')],
+            return response()->json(['error' => $this->response->getMessages('NO_DATA_FOUND')],
              204);
         }
 
@@ -70,7 +76,7 @@ class OrderController extends Controller
     {
         if(!isset($request->origin) || !isset($request->destination) || empty($request->origin) || empty($request->destination) || count($request->origin) <> 2 || count($request->destination) <> 2) {
             return response()->json([
-                'error' => $this->common->getMessages('INVALID_PARAMETERS'),
+                'error' => $this->response->getMessages('INVALID_PARAMETERS'),
             ], 406);
         }
 
@@ -81,20 +87,18 @@ class OrderController extends Controller
         $distanceParamArray['endLongitude'] = $request->destination[1];
 
         //validating input parameters
-        $validatorObj = new Validator;
-        $validate = $validatorObj->validateInputParameters($distanceParamArray);
+        $validate = $this->coordinatesValidator->validateInputParameters($distanceParamArray);
 
         if('failed' === $validate['status']) {
             return response()->json([
-                'error' => $this->common->getMessages($validate['error']),
+                'error' => $this->response->getMessages($validate['error']),
             ], 406);
         }
 
-        $distanceObj = new Distance;
-        $distanceResult = $distanceObj->calculateDistance($distanceParamArray);
+        $distanceResult = $this->distance->calculateDistance($distanceParamArray);
 
         if( !is_int($distanceResult['total_distance'])) {
-            return response()->json(['error' => $this->common->getMessages($distanceResult['total_distance'])],
+            return response()->json(['error' => $this->response->getMessages($distanceResult['total_distance'])],
              400);
         }
 
@@ -121,17 +125,17 @@ class OrderController extends Controller
             return response()->json([
                 'id' => $order->id,
                 'distance' => $distanceResult['total_distance'],
-                'status' => $this->common->getMessages('unassign')
+                'status' => $this->response->getMessages('unassign')
             ], 200);
         }
 
-        return response()->json(['error' => $this->common->getMessages('invalid_data')], 406);
+        return response()->json(['error' => $this->response->getMessages('invalid_data')], 406);
     }
 
     public function update(Request $request, $id)
     {
         if (!isset($request->status) || 'TAKEN' !== $request->status) {
-            return response()->json(['error' => $this->common->getMessages('status_is_invalid')],
+            return response()->json(['error' => $this->response->getMessages('status_is_invalid')],
              406);
         }
 
@@ -140,11 +144,11 @@ class OrderController extends Controller
                 ])->get();
 
         if(0 == count($order)) {
-            return response()->json(['error' => $this->common->getMessages('invalid_id')], 406);
+            return response()->json(['error' => $this->response->getMessages('invalid_id')], 406);
         }
 
         if ('TAKEN' === $order[0]->status) {
-           return response()->json(['error' => $this->common->getMessages('order_taken')], 409);
+           return response()->json(['error' => $this->response->getMessages('order_taken')], 409);
         }
 
         $affected = DB::table('orders')
@@ -155,10 +159,10 @@ class OrderController extends Controller
         ->update(['orders.status' => 'TAKEN']);
 
         if($affected) {
-            return response()->json(['status' => $this->common->getMessages('success')], 200);
+            return response()->json(['status' => $this->response->getMessages('success')], 200);
         }
 
-        return response()->json(['error' => $this->common->getMessages('order_taken')], 409);
+        return response()->json(['error' => $this->response->getMessages('order_taken')], 409);
     }
 
 }
