@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Models\Order;
+use App\Http\Services\OrderProcessing as OrderProcessingService;
 use App\Http\Requests\OrderListRequest;
 use App\Http\Requests\OrderUpdateRequest;
 use App\Http\Requests\OrderStoreRequest;
@@ -15,9 +15,9 @@ use Validator;
 class OrderController extends Controller
 {
     /**
-     * @var \App\Http\Repository\Order
+     * @var \App\Http\Services\OrderProcessing
      */
-    protected $orderRepository;
+    protected $orderProcessingService;
 
     /**
      * @var Response
@@ -29,10 +29,10 @@ class OrderController extends Controller
      * @param Response                 $response
      */
     public function __construct(
-        \App\Http\Repository\Order $orderRepository,
+        OrderService $orderProcessingService,
         Response $response
     ) {
-        $this->orderRepository = $orderRepository;
+        $this->orderProcessingService = $orderProcessingService;
         $this->response = $response;
     }
 
@@ -46,13 +46,13 @@ class OrderController extends Controller
     public function create(OrderStoreRequest $request)
     {
         try {
-            if ($model = $this->orderRepository->createOrder($request)) {
+            if ($model = $this->orderProcessingService->processOrder($request)) {
                 $formattedResponse = $this->response->formatOrderAsResponse($model);
 
                 return $this->response->setSuccessResponse($formattedResponse);
             } else {
-                $messages = $this->orderRepository->error;
-                $errorCode = $this->orderRepository->errorCode;
+                $messages = $this->orderProcessingService->error;
+                $errorCode = $this->orderProcessingService->errorCode;
 
                 return $this->response->setError($messages, $errorCode);
             }
@@ -83,12 +83,14 @@ class OrderController extends Controller
                 return $this->response->setError('Order already Taken', JsonResponse::HTTP_CONFLICT);
             }
 
-            $order->exists = true;
-            $order->id = $id;
-            $order->status = Order::ASSIGNED_ORDER_STATUS;
-            $order->save();
+            if ($this->orderProcessingService->updateOrder($id)) {
+                return $this->response->setSuccess('SUCCESS', JsonResponse::HTTP_OK);
+            } else {
+                $messages = $this->orderProcessingService->error;
+                $errorCode = $this->orderProcessingService->errorCode;
 
-            return $this->response->setSuccess('SUCCESS', JsonResponse::HTTP_OK);
+                return $this->response->setError($messages, $errorCode);
+            }
         } catch (\Exception $e) {
             return $this->response->setError('Invalid Order Id', JsonResponse::HTTP_EXPECTATION_FAILED);
         }
@@ -105,15 +107,9 @@ class OrderController extends Controller
             $page = (int) $request->get('page', 1);
             $limit = (int) $request->get('limit', 1);
 
-            $records = $this->orderRepository->getList($page, $limit);
+            $orders = $this->orderProcessingService->getList($page, $limit);
 
-            if (!empty($records)) {
-                $orders = [];
-
-                foreach ($records as $record) {
-                    $orders[] = $this->response->formatOrderAsResponse($record);
-                }
-
+            if (!empty($orders)) {
                 return $this->response->setSuccessResponse($orders);
             } else {
                 return $this->response->setError('No Content Found', JsonResponse::HTTP_NO_CONTENT);

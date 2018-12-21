@@ -2,71 +2,19 @@
 
 namespace App\Http\Repository;
 
-use App\Http\Models\Distance;
 use App\Http\Models\Order as OrderModel;
-use App\Validators\DistanceValidator;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 
 class Order
 {
     /**
-     * @var null|string
-     */
-    public $error = null;
-
-    /**
-     * @var int
-     */
-    public $errorCode;
-
-    /**
-     * @var DistanceValidator
-     */
-    protected $distanceValidator;
-
-
-    public function __construct(DistanceValidator $distanceValidator)
-    {
-        $this->distanceValidator = $distanceValidator;
-    }
-
-    /**
      * @param Request $requestData
      *
      * @return Order|false
      */
-    public function createOrder($requestData)
+    public function createOrder($distance)
     {
-        $initialLatitude = $requestData->origin[0];
-        $initialLongitude = $requestData->origin[1];
-        $finalLatitude = $requestData->destination[0];
-        $finalLongitude = $requestData->destination[1];
-
-        $validateDistanceParameter = $this->distanceValidator
-            ->validate($initialLatitude,
-                $initialLongitude,
-                $finalLatitude,
-                $finalLongitude
-            );
-
-        if (!$validateDistanceParameter) {
-            $this->error = $this->distanceValidator->getError();
-            $this->errorCode = JsonResponse::HTTP_UNPROCESSABLE_ENTITY;
-
-            return false;
-        }
-
-        $distance = $this->getDistance($initialLatitude, $initialLongitude, $finalLatitude,
-                    $finalLongitude);
-
-        if(!$distance instanceof \App\Http\Models\Distance) {
-            $this->error = $distance;
-            $this->errorCode = JsonResponse::HTTP_BAD_REQUEST;
-
-            return false;
-        }
-
         //Create new record
         $order = new OrderModel();
         $order->status = OrderModel::UNASSIGNED_ORDER_STATUS;
@@ -75,17 +23,6 @@ class Order
         $order->save();
 
         return $order;
-    }
-
-    public function getDistance(
-        $initialLatitude,
-        $initialLongitude,
-        $finalLatitude,
-        $finalLongitude
-    ) {
-        $model = new Distance;
-
-        return $model->getOrSetDistance($initialLatitude, $initialLongitude, $finalLatitude, $finalLongitude);
     }
 
     /**
@@ -101,5 +38,21 @@ class Order
         return (new OrderModel())->with('distanceModel')->skip($skip)->take($limit)->orderBy('id', 'asc')->get();
 
         return $orders;
+    }
+
+    /**
+     * @param int $id
+     *
+     * @return array #please see the type returned
+     */
+    public function update($id) {
+        $affected = DB::table('orders')
+        ->where([
+            ["orders.id", '=', $id],
+            ['status', '=', Order::UNASSIGNED_ORDER_STATUS],
+        ])
+        ->update(['orders.status' => Order::ASSIGNED_ORDER_STATUS]);
+        
+        return $affected;
     }
 }
