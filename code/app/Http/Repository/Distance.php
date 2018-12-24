@@ -13,7 +13,7 @@ class Distance
         $finalLatitude,
         $finalLongitude
     ) {
-        $model = new Distance;
+        $model = new DistanceModel;
 
         return $model->getOrSetDistance($initialLatitude, $initialLongitude, $finalLatitude, $finalLongitude);
     }

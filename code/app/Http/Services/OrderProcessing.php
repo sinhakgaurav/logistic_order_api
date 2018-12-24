@@ -81,21 +81,11 @@ class OrderProcessing
     }
 
     public function getList($page, $limit) {
-    	$records = $this->orderRepository->getList($page, $limit);
-
-    	if(!empty($records)) {
-    		$orders = [];
-
-            foreach ($records as $record) {
-                $orders[] = $this->response->formatOrderAsResponse($record);
-            }
-        }
-
-        return $orders;
+    	return $this->orderRepository->getList($page, $limit);
     }
 
     public function updateOrder($id) {
-    	$affected = $this->orderRepository->update($order);
+    	$affected = $this->orderRepository->update($id);
 
     	if(!$affected) {
     		return false;

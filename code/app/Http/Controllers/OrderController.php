@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Services\OrderProcessing as OrderProcessingService;
+use App\Http\Models\Order;
 use App\Http\Requests\OrderListRequest;
-use App\Http\Requests\OrderUpdateRequest;
 use App\Http\Requests\OrderStoreRequest;
+use App\Http\Requests\OrderUpdateRequest;
 use App\Http\Response\Response;
+use App\Http\Services\OrderProcessing as OrderProcessingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Mockery\Exception;
@@ -29,7 +30,7 @@ class OrderController extends Controller
      * @param Response                 $response
      */
     public function __construct(
-        OrderService $orderProcessingService,
+        OrderProcessingService $orderProcessingService,
         Response $response
     ) {
         $this->orderProcessingService = $orderProcessingService;
@@ -86,13 +87,10 @@ class OrderController extends Controller
             if ($this->orderProcessingService->updateOrder($id)) {
                 return $this->response->setSuccess('SUCCESS', JsonResponse::HTTP_OK);
             } else {
-                $messages = $this->orderProcessingService->error;
-                $errorCode = $this->orderProcessingService->errorCode;
-
-                return $this->response->setError($messages, $errorCode);
+                return $this->response->setError('Order already Taken', JsonResponse::HTTP_CONFLICT);
             }
         } catch (\Exception $e) {
-            return $this->response->setError('Invalid Order Id', JsonResponse::HTTP_EXPECTATION_FAILED);
+            return $this->response->setError('Unable to process.', JsonResponse::HTTP_EXPECTATION_FAILED);
         }
     }
 
@@ -107,7 +105,15 @@ class OrderController extends Controller
             $page = (int) $request->get('page', 1);
             $limit = (int) $request->get('limit', 1);
 
-            $orders = $this->orderProcessingService->getList($page, $limit);
+            $records = $this->orderProcessingService->getList($page, $limit);
+
+            if(!empty($records)) {
+                $orders = [];
+
+                foreach ($records as $record) {
+                    $orders[] = $this->response->formatOrderAsResponse($record);
+                }
+            }
 
             if (!empty($orders)) {
                 return $this->response->setSuccessResponse($orders);

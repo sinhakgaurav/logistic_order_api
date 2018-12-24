@@ -5,6 +5,7 @@ namespace App\Http\Repository;
 use App\Http\Models\Order as OrderModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class Order
 {
@@ -13,7 +14,7 @@ class Order
      *
      * @return Order|false
      */
-    public function createOrder($distance)
+    public function createOrder($dis)
     {
         //Create new record
         $order = new OrderModel();
@@ -43,15 +44,15 @@ class Order
     /**
      * @param int $id
      *
-     * @return array #please see the type returned
+     * @return int
      */
     public function update($id) {
         $affected = DB::table('orders')
         ->where([
             ["orders.id", '=', $id],
-            ['status', '=', Order::UNASSIGNED_ORDER_STATUS],
+            ['status', '=', OrderModel::UNASSIGNED_ORDER_STATUS],
         ])
-        ->update(['orders.status' => Order::ASSIGNED_ORDER_STATUS]);
+        ->update(['orders.status' => OrderModel::ASSIGNED_ORDER_STATUS]);
         
         return $affected;
     }
