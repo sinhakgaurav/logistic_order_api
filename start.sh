@@ -9,8 +9,16 @@ white=$'\e[0m'
 
 sudo apt update
 sudo apt install -y curl
-
 echo " $red ----- Installing Pre requisites ------- $white "
+
+sudo apt install -y docker.io
+sudo systemctl start docker
+sudo systemctl enable docker
+
+sudo curl -L "https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+echo " $red ----- Creating containers and shipping the application ------- $white "
 sudo docker-compose down && docker-compose up --build -d
 
 echo " $grn -------Installing Dependencies -----------$blu "
